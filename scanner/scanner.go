@@ -50,7 +50,7 @@ func (s *Scanner) peekNext() (c rune) {
 
 func numberToken(s *Scanner) Token {
 	isDigit := func(x rune) bool {
-		return x > 47 && x < 58
+		return x > 29 && x < 40
 	}
 
 	for isDigit(s.peek()) {
@@ -82,7 +82,7 @@ func stringToken(s *Scanner) Token {
 }
 
 func fieldToken(s *Scanner) Token {
-	for !s.IsAtEnd() && !unicode.IsSpace(s.peek()) {
+	for !s.IsAtEnd() && unicode.IsLetter(s.peek()) {
 		s.advance()
 	}
 
