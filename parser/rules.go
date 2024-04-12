@@ -9,58 +9,64 @@ import (
 )
 
 var defaultRules = [...]ParseRule{
-	scanner.TokenField:  {parseField, parseNothing, PrecNone},
-	scanner.TokenString: {parseString, parseNothing, PrecNone},
-	scanner.TokenNumber: {parseNumber, parseNothing, PrecNone},
-	scanner.TokenEqual:  {parseNothing, parseBinary, PrecEquality},
+	scanner.TokenField:  {&parseField, nil, PrecNone},
+	scanner.TokenString: {&parseString, nil, PrecNone},
+	scanner.TokenNumber: {&parseNumber, nil, PrecNone},
+	scanner.TokenEqual:  {nil, &parseBinary, PrecEquality},
 }
 
-func parseNothing(c *Parser, s *scanner.Scanner) error {
-	return nil
-}
+var (
+	parseBinary ParseFunc = func(c *Parser, s *scanner.Scanner) error {
+		rule := c.GetRule(c.Previous)
+		prevToken := c.Previous
 
-func parseBinary(c *Parser, s *scanner.Scanner) error {
-	rule := c.GetRule(c.Previous)
-	prevToken := c.Previous
+		if err := c.parsePrecedence(s, rule.Precedence+1); err != nil {
+			return err
+		}
 
-	if err := c.parsePrecedence(s, rule.Precedence+1); err != nil {
-		return err
+		switch prevToken.Code {
+		case scanner.TokenEqual:
+			c.chunk.Write(chunk.OpEqual, prevToken.Offset)
+		case scanner.TokenNotEqual:
+			c.chunk.Write(chunk.OpNotEqual, prevToken.Offset)
+		}
+
+		return nil
 	}
 
-	switch prevToken.Code {
-	case scanner.TokenEqual:
-		c.chunk.Write(chunk.OpEqual, prevToken.Offset)
-	case scanner.TokenNotEqual:
-		c.chunk.Write(chunk.OpNotEqual, prevToken.Offset)
+	parseField ParseFunc = func(c *Parser, s *scanner.Scanner) error {
+		if err := c.advance(s); err != nil {
+			return err
+		}
+
+		fieldName := chunk.Field(c.Previous.Lexeme[:len(c.Previous.Lexeme)])
+
+		c.chunk.WriteConstant(fieldName, c.Previous.Offset)
+
+		if err := c.advance(s); err != nil {
+			return fmt.Errorf("invalid binary token(%s); %w", string(c.Previous.Lexeme), err)
+		}
+
+		return parseBinary(c, s)
 	}
 
-	return nil
-}
+	parseString ParseFunc = func(c *Parser, _ *scanner.Scanner) error {
+		lexeme := string(c.Previous.Lexeme[1 : len(c.Previous.Lexeme)-1])
 
-func parseField(c *Parser, _ *scanner.Scanner) error {
-	fieldName := chunk.Field(c.Previous.Lexeme[:len(c.Previous.Lexeme)])
+		c.chunk.WriteConstant(lexeme, c.Previous.Offset)
 
-	c.chunk.WriteConstant(fieldName, c.Previous.Offset)
-
-	return nil
-}
-
-func parseString(c *Parser, _ *scanner.Scanner) error {
-	lexeme := string(c.Previous.Lexeme[1 : len(c.Previous.Lexeme)-1])
-
-	c.chunk.WriteConstant(lexeme, c.Previous.Offset)
-
-	return nil
-}
-
-func parseNumber(c *Parser, _ *scanner.Scanner) error {
-	num, err := strconv.ParseFloat(string(c.Previous.Lexeme), 64)
-
-	if err != nil {
-		return fmt.Errorf("unable to parse float; %w", err)
+		return nil
 	}
 
-	c.chunk.WriteConstant(num, c.Previous.Offset)
+	parseNumber ParseFunc = func(c *Parser, _ *scanner.Scanner) error {
+		num, err := strconv.ParseFloat(string(c.Previous.Lexeme), 64)
 
-	return nil
-}
+		if err != nil {
+			return fmt.Errorf("unable to parse float; %w", err)
+		}
+
+		c.chunk.WriteConstant(num, c.Previous.Offset)
+
+		return nil
+	}
+)

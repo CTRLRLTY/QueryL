@@ -19,8 +19,8 @@ type ParseFunc func(*Parser, *scanner.Scanner) error
 type Precedence int
 
 type ParseRule struct {
-	Prefix     ParseFunc
-	Infix      ParseFunc
+	Prefix     *ParseFunc
+	Infix      *ParseFunc
 	Precedence Precedence
 }
 
@@ -59,7 +59,7 @@ func (c *Parser) parsePrecedence(s *scanner.Scanner, precedence Precedence) erro
 		return err
 	}
 
-	prefixFunc := c.GetRule(c.Previous).Prefix
+	prefixFunc := *c.GetRule(c.Previous).Prefix
 
 	if prefixFunc == nil {
 		return fmt.Errorf("token(%v) rule not found", c.Previous.Code)
@@ -74,7 +74,7 @@ func (c *Parser) parsePrecedence(s *scanner.Scanner, precedence Precedence) erro
 			return err
 		}
 
-		infixFunc := c.GetRule(c.Previous).Infix
+		infixFunc := *c.GetRule(c.Previous).Infix
 
 		if err := infixFunc(c, s); err != nil {
 			return err
@@ -89,7 +89,7 @@ func (c *Parser) Parse(s *scanner.Scanner) (cnk chunk.Chunk, err error) {
 		return
 	}
 
-	if err = c.parsePrecedence(s, 1); err != nil {
+	if err = parseField(c, s); err != nil {
 		return
 	}
 
