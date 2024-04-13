@@ -47,6 +47,24 @@ func Number2Float(val chunk.Value) (f float64, err error) {
 	return
 }
 
+func Equal(a chunk.Value, b chunk.Value) bool {
+	var (
+		num1 float64
+		num2 float64
+		err1 error
+		err2 error
+	)
+
+	num1, err1 = Number2Float(a)
+	num2, err2 = Number2Float(b)
+
+	if err1 == nil && err2 == nil {
+		return num1 == num2
+	}
+
+	return a == b
+}
+
 func LesserThan(a chunk.Value, b chunk.Value) bool {
 	var (
 		num1 float64

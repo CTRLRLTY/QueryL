@@ -48,7 +48,7 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 
 			for _, doc := range record {
 				if val, ok := doc[key]; ok {
-					if val == a {
+					if vm.Equal(val, a) {
 						filtered = append(filtered, doc)
 					}
 				}
@@ -71,7 +71,7 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 
 			for _, doc := range record {
 				if val, ok := doc[key]; ok {
-					if val != a {
+					if !vm.Equal(val, a) {
 						filtered = append(filtered, doc)
 					}
 				}
@@ -120,6 +120,49 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 					}
 				}
 			}
+
+		case chunk.OpGreaterEqual:
+			a := expr.StackPop()
+			b := expr.StackPop()
+
+			field, ok := b.(chunk.Field)
+
+			if !ok {
+				err = fmt.Errorf("%v is not a valid Field OpCode", b)
+				return
+			}
+
+			key := string(field)
+
+			for _, doc := range record {
+				if val, ok := doc[key]; ok {
+					if vm.Equal(val, a) || vm.GreaterThan(val, a) {
+						filtered = append(filtered, doc)
+					}
+				}
+			}
+
+		case chunk.OpLesserEqual:
+			a := expr.StackPop()
+			b := expr.StackPop()
+
+			field, ok := b.(chunk.Field)
+
+			if !ok {
+				err = fmt.Errorf("%v is not a valid Field OpCode", b)
+				return
+			}
+
+			key := string(field)
+
+			for _, doc := range record {
+				if val, ok := doc[key]; ok {
+					if vm.Equal(val, a) || vm.LesserThan(val, a) {
+						filtered = append(filtered, doc)
+					}
+				}
+			}
+
 		}
 	}
 

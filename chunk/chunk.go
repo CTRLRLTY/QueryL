@@ -8,6 +8,8 @@ const (
 	OpNotEqual
 	OpGreater
 	OpLesser
+	OpGreaterEqual
+	OpLesserEqual
 	OpNot
 )
 

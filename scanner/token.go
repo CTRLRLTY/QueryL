@@ -10,6 +10,8 @@ const (
 	TokenNotEqual
 	TokenGreater
 	TokenLesser
+	TokenGreaterEqual
+	TokenLesserEqual
 	TokenError
 	TokenField
 	TokenEof

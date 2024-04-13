@@ -103,23 +103,38 @@ func (s *Scanner) ScanToken() (tkn Token) {
 
 	switch c {
 	case '>':
+		if s.peek() == '=' {
+			s.advance()
+			return makeToken(s, TokenGreaterEqual)
+		}
+
 		return makeToken(s, TokenGreater)
+
 	case '<':
+		if s.peek() == '=' {
+			s.advance()
+			return makeToken(s, TokenLesserEqual)
+		}
+
 		return makeToken(s, TokenLesser)
+
 	case '&':
 		if s.advance() == '&' {
 			return makeToken(s, TokenAnd)
 		}
+
 	case '=':
 		if s.advance() == '=' {
 			return makeToken(s, TokenEqual)
 		}
+
 	case '!':
 		if s.advance() == '=' {
 			return makeToken(s, TokenNotEqual)
 		} else {
 			return makeToken(s, TokenNot)
 		}
+
 	case '|':
 		if s.advance() == '|' {
 			return makeToken(s, TokenOr)

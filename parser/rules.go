@@ -9,12 +9,14 @@ import (
 )
 
 var defaultRules = [...]ParseRule{
-	scanner.TokenField:   {&parseField, nil, PrecNone},
-	scanner.TokenString:  {&parseString, nil, PrecNone},
-	scanner.TokenNumber:  {&parseNumber, nil, PrecNone},
-	scanner.TokenEqual:   {nil, &parseBinary, PrecEquality},
-	scanner.TokenGreater: {nil, &parseBinary, PrecComparison},
-	scanner.TokenLesser:  {nil, &parseBinary, PrecComparison},
+	scanner.TokenField:        {&parseField, nil, PrecNone},
+	scanner.TokenString:       {&parseString, nil, PrecNone},
+	scanner.TokenNumber:       {&parseNumber, nil, PrecNone},
+	scanner.TokenEqual:        {nil, &parseBinary, PrecEquality},
+	scanner.TokenGreater:      {nil, &parseBinary, PrecComparison},
+	scanner.TokenLesser:       {nil, &parseBinary, PrecComparison},
+	scanner.TokenGreaterEqual: {nil, &parseBinary, PrecComparison},
+	scanner.TokenLesserEqual:  {nil, &parseBinary, PrecComparison},
 }
 
 var (
@@ -35,6 +37,10 @@ var (
 			c.chunk.Write(chunk.OpGreater, prevToken.Offset)
 		case scanner.TokenLesser:
 			c.chunk.Write(chunk.OpLesser, prevToken.Offset)
+		case scanner.TokenGreaterEqual:
+			c.chunk.Write(chunk.OpGreaterEqual, prevToken.Offset)
+		case scanner.TokenLesserEqual:
+			c.chunk.Write(chunk.OpLesserEqual, prevToken.Offset)
 		}
 
 		return nil
