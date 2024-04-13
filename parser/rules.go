@@ -9,10 +9,12 @@ import (
 )
 
 var defaultRules = [...]ParseRule{
-	scanner.TokenField:  {&parseField, nil, PrecNone},
-	scanner.TokenString: {&parseString, nil, PrecNone},
-	scanner.TokenNumber: {&parseNumber, nil, PrecNone},
-	scanner.TokenEqual:  {nil, &parseBinary, PrecEquality},
+	scanner.TokenField:   {&parseField, nil, PrecNone},
+	scanner.TokenString:  {&parseString, nil, PrecNone},
+	scanner.TokenNumber:  {&parseNumber, nil, PrecNone},
+	scanner.TokenEqual:   {nil, &parseBinary, PrecEquality},
+	scanner.TokenGreater: {nil, &parseBinary, PrecComparison},
+	scanner.TokenLesser:  {nil, &parseBinary, PrecComparison},
 }
 
 var (
@@ -29,6 +31,10 @@ var (
 			c.chunk.Write(chunk.OpEqual, prevToken.Offset)
 		case scanner.TokenNotEqual:
 			c.chunk.Write(chunk.OpNotEqual, prevToken.Offset)
+		case scanner.TokenGreater:
+			c.chunk.Write(chunk.OpGreater, prevToken.Offset)
+		case scanner.TokenLesser:
+			c.chunk.Write(chunk.OpLesser, prevToken.Offset)
 		}
 
 		return nil
@@ -62,7 +68,7 @@ var (
 		num, err := strconv.ParseFloat(string(c.Previous.Lexeme), 64)
 
 		if err != nil {
-			return fmt.Errorf("unable to parse float; %w", err)
+			return fmt.Errorf("unable to parse number; %w", err)
 		}
 
 		c.chunk.WriteConstant(num, c.Previous.Offset)

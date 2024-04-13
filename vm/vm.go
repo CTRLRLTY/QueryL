@@ -1,6 +1,10 @@
 package vm
 
-import "github.com/CTRLRLTY/QueryL/chunk"
+import (
+	"fmt"
+
+	"github.com/CTRLRLTY/QueryL/chunk"
+)
 
 type VM struct {
 	stack []chunk.Value
@@ -21,4 +25,60 @@ func (vm *VM) StackPop() (v chunk.Value) {
 	vm.stack = vm.stack[:l-1]
 
 	return
+}
+
+func Number2Float(val chunk.Value) (f float64, err error) {
+	switch v := val.(type) {
+	case int:
+		f = float64(v)
+	case int32:
+		f = float64(v)
+	case int64:
+		f = float64(v)
+	case float32:
+		f = float64(v)
+	case float64:
+		f = v
+	default:
+		err = fmt.Errorf("unsupported typecast")
+		return
+	}
+
+	return
+}
+
+func LesserThan(a chunk.Value, b chunk.Value) bool {
+	var (
+		num1 float64
+		num2 float64
+		err  error
+	)
+
+	if num1, err = Number2Float(a); err != nil {
+		return false
+	}
+
+	if num2, err = Number2Float(b); err != nil {
+		return false
+	}
+
+	return num1 < num2
+}
+
+func GreaterThan(a chunk.Value, b chunk.Value) bool {
+	var (
+		num1 float64
+		num2 float64
+		err  error
+	)
+
+	if num1, err = Number2Float(a); err != nil {
+		return false
+	}
+
+	if num2, err = Number2Float(b); err != nil {
+		return false
+	}
+
+	return num1 > num2
 }

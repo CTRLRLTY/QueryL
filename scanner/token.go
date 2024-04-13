@@ -8,6 +8,8 @@ const (
 	TokenNot
 	TokenEqual
 	TokenNotEqual
+	TokenGreater
+	TokenLesser
 	TokenError
 	TokenField
 	TokenEof

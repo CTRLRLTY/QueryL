@@ -102,6 +102,10 @@ func (s *Scanner) ScanToken() (tkn Token) {
 	c := s.advance()
 
 	switch c {
+	case '>':
+		return makeToken(s, TokenGreater)
+	case '<':
+		return makeToken(s, TokenLesser)
 	case '&':
 		if s.advance() == '&' {
 			return makeToken(s, TokenAnd)

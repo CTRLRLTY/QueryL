@@ -10,9 +10,9 @@ import (
 
 func Filter(str string, record []map[string]any) (filtered []map[string]any, err error) {
 	var (
-		p   parser.Parser
-		cnk chunk.Chunk
-		vm  vm.VM
+		p    parser.Parser
+		cnk  chunk.Chunk
+		expr vm.VM
 	)
 
 	p = parser.Parser{}
@@ -31,11 +31,11 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 			i += 1
 			index := cnk.Code[i]
 			val := cnk.Values[index]
-			vm.StackPush(val)
+			expr.StackPush(val)
 
 		case chunk.OpEqual:
-			a := vm.StackPop()
-			b := vm.StackPop()
+			a := expr.StackPop()
+			b := expr.StackPop()
 
 			field, ok := b.(chunk.Field)
 
@@ -54,11 +54,11 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 				}
 			}
 
-			vm.StackPush(len(filtered) > 0)
+			expr.StackPush(len(filtered) > 0)
 
 		case chunk.OpNotEqual:
-			a := vm.StackPop()
-			b := vm.StackPop()
+			a := expr.StackPop()
+			b := expr.StackPop()
 
 			field, ok := b.(chunk.Field)
 
@@ -77,7 +77,49 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 				}
 			}
 
-			vm.StackPush(len(filtered) > 0)
+			expr.StackPush(len(filtered) > 0)
+
+		case chunk.OpGreater:
+			a := expr.StackPop()
+			b := expr.StackPop()
+
+			field, ok := b.(chunk.Field)
+
+			if !ok {
+				err = fmt.Errorf("%v is not a valid Field OpCode", b)
+				return
+			}
+
+			key := string(field)
+
+			for _, doc := range record {
+				if val, ok := doc[key]; ok {
+					if vm.GreaterThan(val, a) {
+						filtered = append(filtered, doc)
+					}
+				}
+			}
+
+		case chunk.OpLesser:
+			a := expr.StackPop()
+			b := expr.StackPop()
+
+			field, ok := b.(chunk.Field)
+
+			if !ok {
+				err = fmt.Errorf("%v is not a valid Field OpCode", b)
+				return
+			}
+
+			key := string(field)
+
+			for _, doc := range record {
+				if val, ok := doc[key]; ok {
+					if vm.LesserThan(val, a) {
+						filtered = append(filtered, doc)
+					}
+				}
+			}
 		}
 	}
 

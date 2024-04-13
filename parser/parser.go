@@ -39,7 +39,7 @@ func (c *Parser) advance(s *scanner.Scanner) error {
 		c.Current = s.ScanToken()
 
 		if c.Current.Code == scanner.TokenError {
-			return fmt.Errorf("error token %v at %d", c.Current.Lexeme, c.Current.Offset)
+			return fmt.Errorf("error token %s at %d", string(c.Current.Lexeme), c.Current.Offset)
 		}
 	}
 
