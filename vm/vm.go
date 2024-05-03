@@ -27,6 +27,10 @@ func (vm *VM) StackPop() (v chunk.Value) {
 	return
 }
 
+func (vm *VM) StackPeek(distance int) chunk.Value {
+	return vm.stack[len(vm.stack)-1-distance]
+}
+
 func Number2Float(val chunk.Value) (f float64, err error) {
 	switch v := val.(type) {
 	case int:

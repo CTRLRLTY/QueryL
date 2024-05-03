@@ -25,8 +25,20 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 
 	for i := 0; i < len(cnk.Code); i++ {
 		code := cnk.Code[i]
+		filtered = make([]map[string]any, 0, len(record))
 
 		switch code {
+		case chunk.OpPop:
+			expr.StackPop()
+
+		case chunk.OpJumpIfFalse:
+			i += 2
+			offset := uint16(cnk.Code[i-1])<<8 | uint16(cnk.Code[i])
+
+			if isTrue, ok := expr.StackPeek(0).(bool); ok && !isTrue {
+				i += int(offset)
+			}
+
 		case chunk.OpConstant:
 			i += 1
 			index := cnk.Code[i]
@@ -55,6 +67,7 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 			}
 
 			expr.StackPush(len(filtered) > 0)
+			record = filtered
 
 		case chunk.OpNotEqual:
 			a := expr.StackPop()
@@ -78,6 +91,7 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 			}
 
 			expr.StackPush(len(filtered) > 0)
+			record = filtered
 
 		case chunk.OpGreater:
 			a := expr.StackPop()
@@ -100,6 +114,9 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 				}
 			}
 
+			expr.StackPush(len(filtered) > 0)
+			record = filtered
+
 		case chunk.OpLesser:
 			a := expr.StackPop()
 			b := expr.StackPop()
@@ -120,6 +137,9 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 					}
 				}
 			}
+
+			expr.StackPush(len(filtered) > 0)
+			record = filtered
 
 		case chunk.OpGreaterEqual:
 			a := expr.StackPop()
@@ -142,6 +162,9 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 				}
 			}
 
+			expr.StackPush(len(filtered) > 0)
+			record = filtered
+
 		case chunk.OpLesserEqual:
 			a := expr.StackPop()
 			b := expr.StackPop()
@@ -163,6 +186,8 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 				}
 			}
 
+			expr.StackPush(len(filtered) > 0)
+			record = filtered
 		}
 	}
 

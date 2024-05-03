@@ -69,6 +69,8 @@ func (c *Parser) parsePrecedence(s *scanner.Scanner, precedence Precedence) erro
 		return err
 	}
 
+	// parse next token if the current rule precedence
+	// is lower than the next token's rule precedence.
 	for precedence <= c.GetRule(c.Current).Precedence {
 		if err := c.advance(s); err != nil {
 			return err
@@ -85,16 +87,17 @@ func (c *Parser) parsePrecedence(s *scanner.Scanner, precedence Precedence) erro
 }
 
 func (c *Parser) Parse(s *scanner.Scanner) (cnk chunk.Chunk, err error) {
+	// forward the compiler so it moves the current token to previous
 	if err = c.advance(s); err != nil {
 		return
 	}
 
-	if err = parseField(c, s); err != nil {
-		return
+	for c.Current.Code != scanner.TokenEof {
+		c.parsePrecedence(s, 1) // Parse expression
 	}
 
-	if c.Current.Code != scanner.TokenEof {
-		err = fmt.Errorf("invalid token(%s) at %d", string(c.Current.Lexeme), c.Current.Offset)
+	// Consume the Eof token
+	if err = c.advance(s); err != nil {
 		return
 	}
 

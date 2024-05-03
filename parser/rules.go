@@ -9,6 +9,7 @@ import (
 )
 
 var defaultRules = [...]ParseRule{
+	scanner.TokenAnd:          {nil, &parseAnd, PrecAnd},
 	scanner.TokenField:        {&parseField, nil, PrecNone},
 	scanner.TokenString:       {&parseString, nil, PrecNone},
 	scanner.TokenNumber:       {&parseNumber, nil, PrecNone},
@@ -47,19 +48,11 @@ var (
 	}
 
 	parseField ParseFunc = func(c *Parser, s *scanner.Scanner) error {
-		if err := c.advance(s); err != nil {
-			return err
-		}
-
 		fieldName := chunk.Field(c.Previous.Lexeme[:len(c.Previous.Lexeme)])
 
 		c.chunk.WriteConstant(fieldName, c.Previous.Offset)
 
-		if err := c.advance(s); err != nil {
-			return fmt.Errorf("invalid binary token(%s); %w", string(c.Previous.Lexeme), err)
-		}
-
-		return parseBinary(c, s)
+		return nil
 	}
 
 	parseString ParseFunc = func(c *Parser, _ *scanner.Scanner) error {
@@ -78,6 +71,20 @@ var (
 		}
 
 		c.chunk.WriteConstant(num, c.Previous.Offset)
+
+		return nil
+	}
+
+	parseAnd ParseFunc = func(c *Parser, s *scanner.Scanner) error {
+		endJump := c.chunk.WriteJump(chunk.OpJumpIfFalse, c.Previous.Offset)
+
+		c.chunk.Write(chunk.OpPop, c.Previous.Offset)
+
+		if err := c.parsePrecedence(s, PrecAnd); err != nil {
+			return err
+		}
+
+		c.chunk.PatchJump(uint16(endJump))
 
 		return nil
 	}

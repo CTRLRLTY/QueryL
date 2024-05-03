@@ -50,7 +50,7 @@ func (s *Scanner) peekNext() (c rune) {
 
 func numberToken(s *Scanner) Token {
 	isDigit := func(x rune) bool {
-		return x > 29 && x < 40
+		return x > 47 && x < 58
 	}
 
 	for isDigit(s.peek()) {
