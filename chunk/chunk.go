@@ -18,6 +18,9 @@ const (
 	OpNot
 	OpPop
 	OpJumpIfFalse
+	OpJump
+	OpResetCopy
+	OpResetFiltered
 )
 
 type Field string

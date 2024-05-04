@@ -9,6 +9,7 @@ import (
 )
 
 var defaultRules = [...]ParseRule{
+	scanner.TokenOr:           {nil, &parseOr, PrecOr},
 	scanner.TokenAnd:          {nil, &parseAnd, PrecAnd},
 	scanner.TokenField:        {&parseField, nil, PrecNone},
 	scanner.TokenString:       {&parseString, nil, PrecNone},
@@ -78,13 +79,27 @@ var (
 	parseAnd ParseFunc = func(c *Parser, s *scanner.Scanner) error {
 		endJump := c.chunk.WriteJump(chunk.OpJumpIfFalse, c.Previous.Offset)
 
+		c.chunk.Write(chunk.OpResetFiltered, c.Previous.Offset)
 		c.chunk.Write(chunk.OpPop, c.Previous.Offset)
 
 		if err := c.parsePrecedence(s, PrecAnd); err != nil {
 			return err
 		}
 
-		c.chunk.PatchJump(uint16(endJump))
+		if err := c.chunk.PatchJump(uint16(endJump)); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	parseOr ParseFunc = func(c *Parser, s *scanner.Scanner) error {
+		c.chunk.Write(chunk.OpResetCopy, c.Previous.Offset)
+		c.chunk.Write(chunk.OpPop, c.Previous.Offset)
+
+		if err := c.parsePrecedence(s, PrecOr); err != nil {
+			return err
+		}
 
 		return nil
 	}
