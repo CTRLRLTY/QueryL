@@ -2,11 +2,57 @@ package filter
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/CTRLRLTY/QueryL/chunk"
 	"github.com/CTRLRLTY/QueryL/parser"
 	"github.com/CTRLRLTY/QueryL/vm"
 )
+
+func binaryOperator(expr *vm.VM, predicate func(v1, v2 chunk.Value) bool, record *[]map[string]any, filtered *[]map[string]any) (err error) {
+	src := *record
+	dst := *filtered
+
+	a := expr.StackPop()
+	b := expr.StackPop()
+
+	field, ok := b.(chunk.Field)
+
+	if !ok {
+		err = fmt.Errorf("%v is not a valid Field OpCode", b)
+		return
+	}
+
+	if expr.RegFlag&chunk.RfAnd == chunk.RfAnd {
+		src = dst
+		dst = make([]map[string]any, 0, len(src))
+	}
+
+	key := string(field)
+
+	for _, doc := range src {
+		if val, ok := doc[key]; ok {
+			if predicate(val, a) {
+				// If not already filtered
+				if !slices.ContainsFunc(dst, func(fDoc map[string]any) bool {
+					// Check by id
+					if id, hasProp := fDoc["id"]; hasProp {
+						return id == doc["id"]
+					}
+
+					return false
+				}) {
+					dst = append(dst, doc)
+				}
+			}
+		}
+	}
+
+	expr.StackPush(len(dst) > 0)
+	*filtered = dst
+
+	return nil
+}
 
 func Filter(str string, record []map[string]any) (filtered []map[string]any, err error) {
 	var (
@@ -14,8 +60,6 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 		cnk  chunk.Chunk
 		expr vm.VM
 	)
-
-	recordcopy := append(make([]map[string]any, 0, len(record)), record...)
 
 	p = parser.Parser{}
 	p.Init()
@@ -29,11 +73,10 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 		code := cnk.Code[i]
 
 		switch code {
-		case chunk.OpResetFiltered:
-			filtered = make([]map[string]any, 0, len(recordcopy))
-
-		case chunk.OpResetCopy:
-			recordcopy = append(make([]map[string]any, 0, len(record)), record...)
+		case chunk.OpSetAndFlag:
+			expr.RegFlag |= chunk.RfAnd
+		case chunk.OpClearAndFlag:
+			expr.RegFlag &= 0b1111_1110
 
 		case chunk.OpPop:
 			expr.StackPop()
@@ -56,148 +99,22 @@ func Filter(str string, record []map[string]any) (filtered []map[string]any, err
 			expr.StackPush(val)
 
 		case chunk.OpEqual:
-			a := expr.StackPop()
-			b := expr.StackPop()
-
-			field, ok := b.(chunk.Field)
-
-			if !ok {
-				err = fmt.Errorf("%v is not a valid Field OpCode", b)
-				return
-			}
-
-			key := string(field)
-
-			for _, doc := range recordcopy {
-				if val, ok := doc[key]; ok {
-					if vm.Equal(val, a) {
-						filtered = append(filtered, doc)
-					}
-				}
-			}
-
-			expr.StackPush(len(filtered) > 0)
-			recordcopy = filtered
+			binaryOperator(&expr, vm.Equal, &record, &filtered)
 
 		case chunk.OpNotEqual:
-			a := expr.StackPop()
-			b := expr.StackPop()
-
-			field, ok := b.(chunk.Field)
-
-			if !ok {
-				err = fmt.Errorf("%v is not a valid Field OpCode", b)
-				return
-			}
-
-			key := string(field)
-
-			for _, doc := range recordcopy {
-				if val, ok := doc[key]; ok {
-					if !vm.Equal(val, a) {
-						filtered = append(filtered, doc)
-					}
-				}
-			}
-
-			expr.StackPush(len(filtered) > 0)
-			recordcopy = filtered
+			binaryOperator(&expr, vm.NotEqual, &record, &filtered)
 
 		case chunk.OpGreater:
-			a := expr.StackPop()
-			b := expr.StackPop()
-
-			field, ok := b.(chunk.Field)
-
-			if !ok {
-				err = fmt.Errorf("%v is not a valid Field OpCode", b)
-				return
-			}
-
-			key := string(field)
-
-			for _, doc := range recordcopy {
-				if val, ok := doc[key]; ok {
-					if vm.GreaterThan(val, a) {
-						filtered = append(filtered, doc)
-					}
-				}
-			}
-
-			expr.StackPush(len(filtered) > 0)
-			recordcopy = filtered
+			binaryOperator(&expr, vm.GreaterThan, &record, &filtered)
 
 		case chunk.OpLesser:
-			a := expr.StackPop()
-			b := expr.StackPop()
-
-			field, ok := b.(chunk.Field)
-
-			if !ok {
-				err = fmt.Errorf("%v is not a valid Field OpCode", b)
-				return
-			}
-
-			key := string(field)
-
-			for _, doc := range recordcopy {
-				if val, ok := doc[key]; ok {
-					if vm.LesserThan(val, a) {
-						filtered = append(filtered, doc)
-					}
-				}
-			}
-
-			expr.StackPush(len(filtered) > 0)
-			recordcopy = filtered
-
-		case chunk.OpGreaterEqual:
-			a := expr.StackPop()
-			b := expr.StackPop()
-
-			field, ok := b.(chunk.Field)
-
-			if !ok {
-				err = fmt.Errorf("%v is not a valid Field OpCode", b)
-				return
-			}
-
-			key := string(field)
-
-			for _, doc := range recordcopy {
-				if val, ok := doc[key]; ok {
-					if vm.Equal(val, a) || vm.GreaterThan(val, a) {
-						filtered = append(filtered, doc)
-					}
-				}
-			}
-
-			expr.StackPush(len(filtered) > 0)
-			recordcopy = filtered
+			binaryOperator(&expr, vm.LesserThan, &record, &filtered)
 
 		case chunk.OpLesserEqual:
-			a := expr.StackPop()
-			b := expr.StackPop()
+			binaryOperator(&expr, vm.LesserThanEqual, &record, &filtered)
 
-			field, ok := b.(chunk.Field)
-
-			if !ok {
-				err = fmt.Errorf("%v is not a valid Field OpCode", b)
-				return
-			}
-
-			key := string(field)
-
-			for _, doc := range recordcopy {
-				if val, ok := doc[key]; ok {
-					if vm.Equal(val, a) || vm.LesserThan(val, a) {
-						filtered = append(filtered, doc)
-					}
-				}
-			}
-
-			expr.StackPush(len(filtered) > 0)
-			recordcopy = filtered
+		case chunk.OpGreaterEqual:
+			binaryOperator(&expr, vm.GreaterThanEqual, &record, &filtered)
 		}
 	}
 

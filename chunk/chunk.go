@@ -19,8 +19,13 @@ const (
 	OpPop
 	OpJumpIfFalse
 	OpJump
-	OpResetCopy
-	OpResetFiltered
+	OpSetAndFlag
+	OpClearAndFlag
+)
+
+const (
+	RfNone byte = iota
+	RfAnd
 )
 
 type Field string
@@ -45,11 +50,12 @@ func (c *Chunk) WriteConstant(v Value, ofs uint32) {
 }
 
 func (c *Chunk) WriteJump(code byte, ofs uint32) int {
+	// Jmp opcode
 	c.Write(code, ofs)
 
 	// Temporary 16 bytes operand
-	c.Write(0xff, ofs)
-	c.Write(0xff, ofs)
+	c.Write(0xff, ofs) // little-end
+	c.Write(0xff, ofs) // high-end
 
 	// returns the little-end boundary index of the 16-bytes operand
 	return len(c.Code) - 2

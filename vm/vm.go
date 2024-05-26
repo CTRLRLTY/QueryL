@@ -7,7 +7,8 @@ import (
 )
 
 type VM struct {
-	stack []chunk.Value
+	stack   []chunk.Value
+	RegFlag byte
 }
 
 func (vm *VM) StackPush(v chunk.Value) {
@@ -51,7 +52,7 @@ func Number2Float(val chunk.Value) (f float64, err error) {
 	return
 }
 
-func Equal(a chunk.Value, b chunk.Value) bool {
+func Equal(a, b chunk.Value) bool {
 	var (
 		num1 float64
 		num2 float64
@@ -69,7 +70,11 @@ func Equal(a chunk.Value, b chunk.Value) bool {
 	return a == b
 }
 
-func LesserThan(a chunk.Value, b chunk.Value) bool {
+func NotEqual(a, b chunk.Value) bool {
+	return !Equal(a, b)
+}
+
+func LesserThan(a, b chunk.Value) bool {
 	var (
 		num1 float64
 		num2 float64
@@ -87,7 +92,7 @@ func LesserThan(a chunk.Value, b chunk.Value) bool {
 	return num1 < num2
 }
 
-func GreaterThan(a chunk.Value, b chunk.Value) bool {
+func GreaterThan(a, b chunk.Value) bool {
 	var (
 		num1 float64
 		num2 float64
@@ -103,4 +108,12 @@ func GreaterThan(a chunk.Value, b chunk.Value) bool {
 	}
 
 	return num1 > num2
+}
+
+func LesserThanEqual(a, b chunk.Value) bool {
+	return Equal(a, b) || LesserThan(a, b)
+}
+
+func GreaterThanEqual(a, b chunk.Value) bool {
+	return Equal(a, b) || GreaterThan(a, b)
 }

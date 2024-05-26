@@ -79,12 +79,14 @@ var (
 	parseAnd ParseFunc = func(c *Parser, s *scanner.Scanner) error {
 		endJump := c.chunk.WriteJump(chunk.OpJumpIfFalse, c.Previous.Offset)
 
-		c.chunk.Write(chunk.OpResetFiltered, c.Previous.Offset)
+		c.chunk.Write(chunk.OpSetAndFlag, c.Previous.Offset)
 		c.chunk.Write(chunk.OpPop, c.Previous.Offset)
 
 		if err := c.parsePrecedence(s, PrecAnd); err != nil {
 			return err
 		}
+
+		c.chunk.Write(chunk.OpClearAndFlag, c.Previous.Offset)
 
 		if err := c.chunk.PatchJump(uint16(endJump)); err != nil {
 			return err
@@ -94,7 +96,6 @@ var (
 	}
 
 	parseOr ParseFunc = func(c *Parser, s *scanner.Scanner) error {
-		c.chunk.Write(chunk.OpResetCopy, c.Previous.Offset)
 		c.chunk.Write(chunk.OpPop, c.Previous.Offset)
 
 		if err := c.parsePrecedence(s, PrecOr); err != nil {
