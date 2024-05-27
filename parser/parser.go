@@ -93,7 +93,10 @@ func (c *Parser) Parse(s *scanner.Scanner) (cnk chunk.Chunk, err error) {
 	}
 
 	for c.Current.Code != scanner.TokenEof {
-		c.parsePrecedence(s, 1) // Parse expression
+		// Parse expression
+		if err = c.parsePrecedence(s, 1); err != nil {
+			return
+		}
 	}
 
 	// Consume the Eof token

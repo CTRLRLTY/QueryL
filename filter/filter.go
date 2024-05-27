@@ -9,7 +9,7 @@ import (
 	"github.com/CTRLRLTY/QueryL/vm"
 )
 
-func binaryOperator(expr *vm.VM, predicate func(v1, v2 chunk.Value) bool, record *[]map[string]any, filtered *[]map[string]any) (err error) {
+func binaryOperator(expr *vm.VM, predicate func(v1, v2 chunk.Value) bool, record, filtered *[]map[string]any) (err error) {
 	src := *record
 	dst := *filtered
 
